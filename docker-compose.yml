@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  web3-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: web3-gateway
+    container_name: web3-gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped 
