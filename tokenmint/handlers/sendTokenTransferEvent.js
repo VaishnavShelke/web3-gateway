@@ -1,7 +1,7 @@
 const axios = require("axios");
 
-const apiUrl =
-  "http://localhost:1001/tokenmint/server/internal/eventlistener/transferevent";
+const apiUrl = process.env.TRANSFER_TOKEN_EVENT_TBS_ENDPOINT;
+
 
 const sendTokenTransferEvent = async (info) => {
   try {
