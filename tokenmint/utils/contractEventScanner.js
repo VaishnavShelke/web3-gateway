@@ -13,6 +13,18 @@ class ContractEventScanner {
         this.lastError = null;
     }
 
+    convertHexToTimestamp(hexValue) {
+        try {
+            // Take the first 8 bytes (16 hex digits)
+            const trimmedHex = hexValue.slice(0, 16); // e.g. "0x47dffdf583a24000"
+            const decimal = BigInt(trimmedHex); // nanoseconds
+            return decimal.toString();
+        } catch (error) {
+            console.error('Error converting hex to timestamp:', error);
+            return '00000000000000000'; // Default value
+        }
+    }
+
     async startScanning() {
         if (this.isScanning) {
             console.log('Event scanner is already running');
@@ -102,13 +114,10 @@ class ContractEventScanner {
                             const dataOffset = ethers.BigNumber.from(ethers.utils.hexDataSlice(data, 64, 96)).toNumber();
                             const dataLength = ethers.BigNumber.from(ethers.utils.hexDataSlice(data, 96, 128)).toNumber();
                             const eventData = ethers.utils.hexDataSlice(data, 128, 128 + dataLength * 2);
+                            console.log('eventData:', eventData);
                             
-                            // Step 1: Convert hex string to BigInt
-                            const bigIntValue = BigInt(eventData);
-                            // Step 2: Convert to decimal string
-                            const decimalString = bigIntValue.toString();
-                            // Step 3: Extract the first 17 digits (actual timestamp-like value)
-                            const timestampValue = decimalString.slice(0, 17);
+                            const timestampValue = this.convertHexToTimestamp(eventData);
+                            console.log("Decoded timestamp:", timestampValue);
 
                             const info = {
                                 operator: operator,

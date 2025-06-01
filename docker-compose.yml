@@ -14,6 +14,7 @@ services:
       - CONTRACT_OWNER_ADDRESS=0x17a8dD0d3199ae2c59dC96578a6B5bEFAF963db3
       - TOKEN_MINT_CONTRACT_ADDRESS=0xaA942F73B4D05aE58fd51Ae74B971D461D7Cb6D4
       - TRANSFER_TOKEN_EVENT_TBS_ENDPOINT=http://token-bridge-server:1001/tokenmint/server/internal/eventlistener/transferevent
+      - CONTRACT_ABI_GITHUB_URL=https://raw.githubusercontent.com/VaishnavShelke/smart-contract-abis/refs/heads/main/0x2dE29da96381BdCd99a19Bde434344f6195206b1_simplest.json
     networks:
       - tokenmint-ecosystem
     restart: unless-stopped

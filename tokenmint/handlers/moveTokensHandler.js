@@ -26,7 +26,6 @@ const moveTokenHandler = async ({
 
   const contractWithWallet = contract.connect(operatorWallet);
 
-
   // Set manual gas limit and gas price
   const gasLimit = 200000; // Increased gas limit for safety
   const gasPrice = await operatorWallet.provider.getGasPrice();
@@ -47,7 +46,7 @@ const moveTokenHandler = async ({
   console.log(`Transaction sent with gas limit: ${gasLimit}`);
   const txReciept = await tx.wait();
 
-  console.log(`Transaction Receipt:`, JSON.stringify(txReciept, null, 2));
+  console.log(`Transaction Receipt:`, JSON.stringify(txReciept));
 
   const balanceOfSender = await contract.balanceOf(from, id);
   const balanceOfReciever = await contract.balanceOf(to, id);

@@ -6,7 +6,7 @@ const apiUrl = process.env.TRANSFER_TOKEN_EVENT_TBS_ENDPOINT;
 const sendTokenTransferEvent = async (info) => {
   try {
     const postData = {
-      tokenMintTransactionId: info.c,
+      tokenMintTransactionId: info.data,
       operator: info.operator,
       from: info.from,
       to: info.to,
@@ -18,6 +18,7 @@ const sendTokenTransferEvent = async (info) => {
     };
     console.log("\n\n#############################################################");
     console.log("Contacting game server, after transfer token event recieved ");
+    console.log("Post Data:", postData);
     axios
       .post(apiUrl, postData)
       .then((response) => {

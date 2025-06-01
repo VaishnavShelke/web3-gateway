@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
 const utilityRoutes = require("./tokenmint/routes/utilityRoutes.js");
 const tokenMintRoutes = require("./tokenmint/routes/tokenMintRoutes.js");
 app.use("/utility", utilityRoutes);
-app.use("/web-3-gateway/tokenmint", tokenMintRoutes);
+app.use("/web3-gateway/tokenmint", tokenMintRoutes);
 
 // Debug logging for contract event listener
 console.debug('Initializing contract event listener...');

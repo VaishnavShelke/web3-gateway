@@ -1,12 +1,22 @@
 const { ethers } = require("ethers");
+const { fetchFromGithub } = require("../utils/githubUtils");
+require("dotenv").config();
 
 const initContract = async ({ contractAddress, provider }) => {
-  const contractABI = [
-    "function balanceOf(address account, uint256 id) public view returns (uint256)",
-    "function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) public",
-    "function mySafeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) public",
-  ];
   try {
+    // Get GitHub raw URL from environment variable
+    const githubRawUrl = process.env.CONTRACT_ABI_GITHUB_URL;
+    if (!githubRawUrl) {
+      throw new Error("CONTRACT_ABI_GITHUB_URL environment variable is not set");
+    }
+
+    // Fetch and parse the ABI from GitHub
+    const abiData = await fetchFromGithub(githubRawUrl);
+    const contractABI = JSON.parse(abiData);
+    
+    // Print the loaded ABI
+    console.log("Loaded Contract ABI:", JSON.stringify(contractABI));
+
     const contract = new ethers.Contract(
       contractAddress,
       contractABI,

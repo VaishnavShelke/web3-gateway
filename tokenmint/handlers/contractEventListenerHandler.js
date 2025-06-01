@@ -1,46 +1,57 @@
-const ethers = require("ethers");
-const tokenMintInventoryABI = require("../../tokenMintInventoryABI.json");
+const { ethers } = require("ethers");
+const { fetchFromGithub } = require("../utils/githubUtils");
 const { sendTokenTransferEvent } = require("./sendTokenTransferEvent");
+const { checkContractEvents } = require("../utils/eventSignatureUtils");
+const ContractEventScanner = require("../utils/contractEventScanner");
 require('dotenv').config();
-
-const tokenMintInventoryTemp = [
-  "function balanceOf(address account, uint256 id) public view returns (uint256)",
-  "function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes memory data) public",
-  "event Transfer(address sender, address from, address to, uint256 id, uint256 value, bytes data)"
-];
 
 let provider;
 let contract;
 let isListening = false;
+let eventScanner;
 
 async function setupContract() {
   try {
-    const API_URL = "wss://eth-sepolia.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY;
-    provider = new ethers.providers.WebSocketProvider(API_URL);
+    const API_URL = "https://eth-sepolia.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY;
+    provider = new ethers.providers.JsonRpcProvider(API_URL);
     const tokenMintInventoryAddress = process.env.TOKEN_MINT_CONTRACT_ADDRESS;
     
     if (!tokenMintInventoryAddress) {
       throw new Error('TOKEN_MINT_CONTRACT_ADDRESS is not defined in environment variables');
     }
 
+    // Get GitHub raw URL from environment variable
+    const githubRawUrl = process.env.CONTRACT_ABI_GITHUB_URL;
+    if (!githubRawUrl) {
+      throw new Error("CONTRACT_ABI_GITHUB_URL environment variable is not set");
+    }
+
+    // Fetch and parse the ABI from GitHub
+    const abiData = await fetchFromGithub(githubRawUrl);
+    console.log("Raw ABI data from GitHub:", abiData);
+    const contractABI = JSON.parse(abiData);
+    
+    // Print the loaded ABI
+    console.log("Loaded Contract ABI for Event Listener:", JSON.stringify(contractABI));
+
     contract = new ethers.Contract(
       tokenMintInventoryAddress,
-      tokenMintInventoryTemp,
+      contractABI,
       provider
     );
 
-    // Setup event listeners for provider
-    provider._websocket.on('close', async () => {
-      console.log('WebSocket connection closed. Attempting to reconnect...');
-      isListening = false;
-      setTimeout(setupContract, 5000); // Try to reconnect after 5 seconds
-    });
+    // Debug: Print all available events in the contract
+    console.log("\nAvailable events in contract:");
+    console.log("Contract interface:", contract.interface);
+    console.log("Events:", contract.interface.events);
+    console.log("Event names:", Object.keys(contract.interface.events));
+    console.log("Full event definitions:", JSON.stringify(contract.interface.events));
 
-    provider._websocket.on('error', async (error) => {
-      console.error('WebSocket error:', error);
-      isListening = false;
-      setTimeout(setupContract, 5000);
-    });
+    // Check if contract has the Transfer event
+    const hasTransferEvent = await checkContractEvents(contract);
+    if (!hasTransferEvent) {
+      throw new Error('Contract does not have the Transfer event or event signature does not match');
+    }
 
     return true;
   } catch (error) {
@@ -63,28 +74,37 @@ async function startEventListener() {
   }
 
   try {
-    contract.on(
-      "Transfer",
-      (sender, from, to, id, value, data, event) => {
-        let info = {
-          sender: sender,
-          from: from,
-          to: to,
-          id: id.toString(),
-          value: value.toString(),
-          data: data,
-          event: event
-        };
-        sendTokenTransferEvent(info);
-        console.log(`Transfer Event Detected:`, JSON.stringify(info, null, 2));
-      }
-    );
-
+    console.log('Setting up Transfer event listener...');
+    console.log('Contract address:', contract.address);
+    console.log('Provider network:', await provider.getNetwork());
+    
+    // Initialize and start the event scanner
+    eventScanner = new ContractEventScanner(contract, provider);
+    await eventScanner.startScanning();
+    
     isListening = true;
     console.log('Event listener started successfully');
+    
+    // Add periodic health check
+    setInterval(async () => {
+      if (isListening) {
+        try {
+          const blockNumber = await provider.getBlockNumber();
+          console.log(`Event listener is healthy. Current block: ${blockNumber}`);
+          console.log(`Event scanner is ${eventScanner.isRunning() ? 'running' : 'stopped'}`);
+          console.log(`Last scanned block: ${eventScanner.getLastScannedBlock()}`);
+        } catch (error) {
+          console.error('Health check failed:', error);
+        }
+      }
+    }, 30000); // Check every 30 seconds
+
   } catch (error) {
     console.error('Error starting event listener:', error);
     isListening = false;
+    if (eventScanner) {
+      await eventScanner.stopScanning();
+    }
     setTimeout(startEventListener, 5000);
   }
 }
