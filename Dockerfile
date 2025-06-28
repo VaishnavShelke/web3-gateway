@@ -30,7 +30,6 @@ RUN npm ci --only=production
 # Copy built application from builder stage
 COPY --from=builder /app/index.js ./
 COPY --from=builder /app/tokenmint ./tokenmint
-COPY --from=builder /app/tokenMintInventoryABI.json ./
 
 # Create a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
